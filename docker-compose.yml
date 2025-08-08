@@ -1,0 +1,37 @@
+version: '3.9'
+
+services:
+  mongo:
+    image: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  waha:
+    image: devlikeapro/waha
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URI=mongodb://mongo:27017/waha
+      - SECRET_KEY=supersecret
+      - WEBHOOK_URL=http://localhost:8000/webhook
+    depends_on:
+      - mongo
+
+  app:
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mongo
+      - waha
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/waha-multitenant
+      - WAHA_BASE_URL=http://waha:3000/api
+      - JWT_SECRET=your_jwt
+      - JWT_REFRESH_SECRET=your_refresh
+
+volumes:
+  mongo_data:
