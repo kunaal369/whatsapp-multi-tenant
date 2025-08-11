@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  waha:
+    image: devlikeapro/waha
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_PROVIDER=mongodb
+      - DATABASE_URI=mongodb://mongo:27017/waha
+      - MULTI_SESSION=false
+      - WAHA_API_KEY=supersecretapikey
+      - WAHA_API_KEY_PLAIN=supersecretapikey
+      - WAHA_APPS_ENABLED=True
+      - WEBHOOK_URL=http://localhost:8000/webhook
+      - CACHE_REDIS_ENABLED=false
+      - REDIS_ENABLED=false
+      - REDIS_URI=
+      - CACHE_DRIVER=memory   # <-- force in-memory cache
+      - STORAGE_DRIVER=local  # <-- store files locally, no Redis
+    depends_on:
+      - mongo
+
+  app:
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mongo
+      - waha
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/waha-multitenant
+      - WAHA_BASE_URL=http://waha:3000/api
+      - WAHA_API_KEY=supersecretapikey
+      - JWT_SECRET=your_jwt
+      - JWT_REFRESH_SECRET=your_refresh
+      - MULTI_SESSION=false
+    command: >
+      sh -c "npm run create-admin && npm start"
+
+volumes:
+  mongo_data:
